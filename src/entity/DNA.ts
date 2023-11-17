@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from "typeorm";
 import { HumanType } from "./HumanType";
 
 @Entity()
@@ -9,6 +15,6 @@ export class DNA {
   @Column()
   content: string;
 
-  @ManyToOne(() => HumanType)
+  @ManyToOne(() => HumanType, (humanType) => humanType.id)
   humanType: HumanType;
 }
