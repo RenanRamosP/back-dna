@@ -6,6 +6,14 @@ import { isSigmano } from "../functions/DNA";
 export class DNAController {
   private dnaRepository = AppDataSource.getRepository(DNA);
 
+  private async getDNAById(id: number) {
+    return await this.dnaRepository
+      .createQueryBuilder("DNA")
+      .leftJoinAndSelect("DNA.humanType", "type")
+      .where("DNA.id = :id", { id })
+      .getOne();
+  }
+
   async all(request: Request, response: Response, next: NextFunction) {
     try {
       const allDNAs = await this.dnaRepository
@@ -13,9 +21,9 @@ export class DNAController {
         .leftJoinAndSelect("DNA.humanType", "type")
         .getMany();
 
-      response.status(200).send(allDNAs);
+      return response.status(200).json(allDNAs);
     } catch (err) {
-      response.status(400).send(err.message);
+      return response.status(400).json(err.message);
     }
   }
 
@@ -24,16 +32,14 @@ export class DNAController {
       if (request.params.id === undefined) throw new Error("ID is required");
       const id = parseInt(request.params.id);
 
-      const DNA = await this.dnaRepository.findOne({
-        where: { id },
-      });
+      const DNA = await this.getDNAById(id);
 
       if (!DNA) {
         throw new Error("DNA not found");
       }
-      response.status(200).send(DNA);
+      return response.status(200).json(DNA);
     } catch (err) {
-      response.status(400).send(err.message);
+      return response.status(400).json(err.message);
     }
   }
 
@@ -51,7 +57,7 @@ export class DNAController {
         .where("content = :dna", { dna })
         .getOne();
 
-      if (existantDNA) response.status(200).send(existantDNA);
+      if (existantDNA) return response.status(200).json(existantDNA);
 
       const splittedDNA = [];
       for (let i = 0; i < dna.length; i += matrixSize) {
@@ -67,10 +73,13 @@ export class DNAController {
         content: dna,
         humanType,
       });
+      const dbResp = await this.dnaRepository.save(dnaToSave);
+      console.log("inserted: ", dbResp);
+      const insertedDNA = await this.getDNAById(dbResp.id);
 
-      response.status(201).send(dnaToSave);
+      return response.status(201).json(insertedDNA);
     } catch (err) {
-      response.status(400).send(err.message);
+      return response.status(400).json(err.message);
     }
   }
 }

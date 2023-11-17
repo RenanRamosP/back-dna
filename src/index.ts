@@ -4,16 +4,24 @@ import "dotenv/config";
 import { Request, Response } from "express";
 import { AppDataSource } from "./data-source";
 import { Routes } from "./routes";
+import cors = require("cors");
 
 const PORT = process.env.PORT || 3001;
 
 AppDataSource.initialize()
   .then(async () => {
-    // create express app
     const app = express();
+
+    const allowedOrigins = ["http://localhost:3000"];
+
+    const options: cors.CorsOptions = {
+      origin: allowedOrigins,
+    };
+
+    app.use(cors(options));
+
     app.use(bodyParser.json());
 
-    // register express routes from defined application routes
     Routes.forEach((route) => {
       (app as any)[route.method](
         route.route,
@@ -23,12 +31,22 @@ AppDataSource.initialize()
             res,
             next
           );
+
+          console.log(
+            "Request Made: ",
+            req.method,
+            req.url,
+            req.body,
+            req.params,
+            req.query
+          );
+
           if (result instanceof Promise) {
-            result.then((result) =>
-              result !== null && result !== undefined
-                ? res.send(result)
-                : undefined
-            );
+            result.then((result) => {
+              return result !== null && result !== undefined
+                ? result.send()
+                : undefined;
+            });
           } else if (result !== null && result !== undefined) {
             res.json(result);
           }
@@ -36,10 +54,6 @@ AppDataSource.initialize()
       );
     });
 
-    // setup express app here
-    // ...
-
-    // start express server
     app.listen(PORT);
 
     console.log(`Express server has started on port ${PORT}.`);
